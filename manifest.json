@@ -1,0 +1,68 @@
+{
+    "manifest_version": 3,
+    "name": "FormFlow",
+    "description": "Upload personal documents and use AI-powered Retrieval-Augmented Generation (RAG) to fill out forms automatically.",
+    "version": "1.0.0",
+    "author": "Denver Gas",
+    "permissions": [
+      "activeTab",
+      "scripting",
+      "storage",
+      "tabs",
+      "clipboardWrite",
+      "clipboardRead"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "index.html",
+      "default_icon": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+      }
+    },
+    "icons": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["contentScript.js"],
+        "css": ["contentStyles.css"]
+      }
+    ],
+    "host_permissions": [
+      "http://*/*",
+      "https://*/*"
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": ["document.js", "fillForm.js", "icons/*"],
+        "matches": ["<all_urls>"]
+      }
+    ],
+    "storage": {
+      "managed_schema": "schema.json"
+    },
+    "commands": {
+      "_execute_action": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+F"
+        },
+        "description": "Trigger AutoForm filling action"
+      }
+    },
+    "options_page": "options.html",
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+    },
+    "short_name": "FormIQ",
+    "offline_enabled": true,
+    "minimum_chrome_version": "93",
+    "version_name": "Initial Release"
+  }
+  
