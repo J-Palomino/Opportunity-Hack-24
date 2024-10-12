@@ -1,8 +1,9 @@
-import express from 'express';
-import { google } from 'googleapis';
+import express, { Request, Response } from 'express';
+import { google, drive_v3 } from 'googleapis';
 import { JWT } from 'google-auth-library';
-import algoliasearch from 'algoliasearch';
+
 import dotenv from 'dotenv';
+import { Readable } from 'stream';
 
 dotenv.config();
 
@@ -19,24 +20,19 @@ const auth = new JWT({
   scopes: ['https://www.googleapis.com/auth/drive.readonly'],
 });
 
-const drive = google.drive({ version: 'v3', auth });
+const drive: drive_v3.Drive = google.drive({ version: 'v3', auth });
 
 // Initialize Algolia client
-const algoliaClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_API_KEY);
-const index = algoliaClient.initIndex('google_drive_files');
 
-app.get('/index-drive', async (req, res) => {
+
+app.get('/index-drive', async (req: Request, res: Response) => {
   try {
     const files = await listFiles(FOLDER_ID);
 
     for (const file of files) {
       try {
         const content = await downloadFile(file.id);
-        await index.saveObject({
-          objectID: file.id,
-          name: file.name,
-          content: content,
-        });
+        
       } catch (error) {
         console.error(`Error processing file ${file.name}:`, error);
       }
@@ -64,17 +60,32 @@ async function listFiles(folderId: string): Promise<Array<{ id: string; name: st
     if (batch) {
       files = files.concat(batch.map(file => ({ id: file.id!, name: file.name! })));
     }
-
-    pageToken = response.data.nextPageToken;
+    pageToken = response.data.nextPageToken || undefined;
   } while (pageToken);
 
   return files;
 }
 
 async function downloadFile(fileId: string): Promise<string> {
-  // Implement file download logic here
-  // This is a placeholder function
-  return 'File content placeholder';
+  const response = await drive.files.get(
+    { fileId, alt: 'media' },
+    { responseType: 'stream' }
+  );
+
+  return new Promise((resolve, reject) => {
+    let content = '';
+    const stream: Readable = response.data as Readable;
+    stream
+      .on('data', (chunk) => {
+        content += chunk;
+      })
+      .on('end', () => {
+        resolve(content);
+      })
+      .on('error', (error) => {
+        reject(error);
+      });
+  });
 }
 
 app.listen(port, () => {
